@@ -16,6 +16,13 @@ var P *big.Int
 var B *FieldElement
 var Ripemd160 hash.Hash
 
+type Network byte
+
+const (
+	MAINNET Network = 0
+	TESTNET Network = 111
+)
+
 type FieldElement struct {
 	Value, Field *big.Int
 }
@@ -24,7 +31,7 @@ type Point struct{
 	X, Y *FieldElement
 }
 
-func (p *Point) GetTestnetAddress() string {
+func (p *Point) GetAddress(network Network) string {
 	result := p.encodeUncompressedSecBytes()
 
 	// Compute HASH160 (SHA256 + RIPEMD160)
@@ -32,15 +39,10 @@ func (p *Point) GetTestnetAddress() string {
 	Ripemd160.Reset()
 	Ripemd160.Write(v256result[:])
 	v160result := Ripemd160.Sum(nil)
-	fmt.Println("RES", v160result)
-
 	// Payload format: [1 byte (network) + 20 byte (key) + 4 byte (checksum)]
 	resultPayload := make([]byte, 1 + 20 + 4)
-	resultPayload[0] = byte(111)
+	resultPayload[0] = byte(network)
 	copy(resultPayload[1:22], v160result)
-
-	// fmt.Println("PAYLOAD: ", v160result)
-	// fmt.Println("ADDRESS: ", resultPayload)
 
 	// Perform Checksum
 	firstShaChecksum := sha256.Sum256(resultPayload[:21])
